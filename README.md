@@ -31,17 +31,47 @@ npm install
 ```
 *这可能需要几分钟时间，请耐心等待进度条走完。如果看到 "added ... packages"，说明成功了。*
 
-### 第五步：启动网页
+### 第五步：配置调试身份（可选）
+如果您需要以特定身份进行调试，可以按照以下步骤操作：
+1. 在 `forntend` 文件夹下新建一个文件，命名为 `.env.local`。
+2. 用记事本打开该文件，添加以下内容（请根据实际需求修改）：
+   ```env
+   DEBUG_LOCAL=1
+   DEV_USER_EMAIL=dev@medisage.local
+   DEV_USER_PASSWORD=devpass
+   ```
+3. 保存并关闭文件。
+
+### 第六步：启动网页
 在黑窗口中输入以下命令并回车：
 ```bash
 npm run dev
 ```
 *看到 "Ready in ..." 或 "Local: http://localhost:3000" 的字样时，说明程序已经跑起来了！*
 
-### 第六步：访问界面
+### 第七步：访问界面
 1. 打开您的浏览器（推荐使用 Chrome 或 Edge）。
 2. 在地址栏输入：`http://localhost:3000`
 3. 现在您就可以看到 MediSage 的界面并开始使用了！
+
+---
+
+## 🧱 后端（Spring Boot）快速上手
+前端可以直接调用一个基础的 Spring Boot 服务，项目位于 `backend/` 目录。
+
+1. **准备工具**：安装 JDK 17（或更高版本的 LTS）与 Maven 3.9+。
+2. **安装依赖**：
+  ```bash
+  cd backend
+  mvn clean install
+  ```
+3. **启动服务**：
+  ```bash
+  mvn spring-boot:run
+  ```
+4. **健康检查**：浏览器访问 `http://localhost:8080/api/health`，若看到 `MediSage backend is running` 则说明后端已成功运行。
+
+> 提示：前端默认运行在 3000 端口，后端运行在 8080 端口，二者互不冲突。
 
 ---
 
