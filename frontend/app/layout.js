@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { getUsers } from '../src/data/store.js'
 
 export const metadata = {
-  title: '智医言犀 · MediSage',
+  title: '智医言犀 · AISP',
   description: 'AI 大模型与医学生问诊训练平台',
 }
 

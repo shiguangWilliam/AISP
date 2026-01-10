@@ -11,6 +11,6 @@ public class HealthController {
 
     @GetMapping
     public ResponseEntity<String> getStatus() {
-        return ResponseEntity.ok("MediSage backend is running");
+        return ResponseEntity.ok("AISP backend is running");
     }
 }

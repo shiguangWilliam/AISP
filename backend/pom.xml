@@ -14,8 +14,8 @@
     <groupId>com.medisage</groupId>
     <artifactId>medisage-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>MediSage Backend</name>
-    <description>Basic Spring Boot service for MediSage</description>
+    <name>AISP Backend</name>
+    <description>Basic Spring Boot service for AISP</description>
     <properties>
         <java.version>21</java.version>
     </properties>

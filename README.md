@@ -1,6 +1,6 @@
-# MediSage 医疗智能助手
+# AISP 医疗智能助手
 
-这是一个为非计算机专业用户准备的“傻瓜式”快速上手教程，帮助您在本地运行 MediSage 前端界面。
+这是一个为非计算机专业用户准备的“傻瓜式”快速上手教程，帮助您在本地运行 AISP 前端界面。
 
 ---
 
@@ -14,13 +14,13 @@
 
 ### 第二步：下载并打开项目
 1. 将本项目下载到您的电脑上并解压。
-2. 记住文件夹的位置（例如：`C:\Users\您的名字\Desktop\MediSage`）。
+2. 记住文件夹的位置（例如：`C:\Users\您的名字\Desktop\AISP`）。
 
 ### 第三步：打开控制台（黑窗口）
 1. 在 Windows 搜索栏输入 `cmd` 或 `PowerShell` 并打开。
 2. 输入以下命令进入项目文件夹（请将路径替换为您实际的文件夹路径）：
    ```bash
-   cd C:\Users\您的名字\Desktop\MediSage\forntend
+  cd C:\Users\您的名字\Desktop\AISP\forntend
    ```
    *注意：如果您的文件夹在 D 盘，请先输入 `D:` 然后回车，再输入 `cd ...`*
 
@@ -37,7 +37,7 @@ npm install
 2. 用记事本打开该文件，添加以下内容（请根据实际需求修改）：
    ```env
    DEBUG_LOCAL=1
-   DEV_USER_EMAIL=dev@medisage.local
+  DEV_USER_EMAIL=dev@aisp.local
    DEV_USER_PASSWORD=devpass
    ```
 3. 保存并关闭文件。
@@ -52,7 +52,7 @@ npm run dev
 ### 第七步：访问界面
 1. 打开您的浏览器（推荐使用 Chrome 或 Edge）。
 2. 在地址栏输入：`http://localhost:3000`
-3. 现在您就可以看到 MediSage 的界面并开始使用了！
+3. 现在您就可以看到 AISP 的界面并开始使用了！
 
 ---
 
@@ -69,7 +69,7 @@ npm run dev
   ```bash
   mvn spring-boot:run
   ```
-4. **健康检查**：浏览器访问 `http://localhost:8080/api/health`，若看到 `MediSage backend is running` 则说明后端已成功运行。
+4. **健康检查**：浏览器访问 `http://localhost:3335/api/health`，若看到 `AISP backend is running` 则说明后端已成功运行。
 
 > 提示：前端默认运行在 3000 端口，后端运行在 8080 端口，二者互不冲突。
 

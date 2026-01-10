@@ -26,7 +26,7 @@ export default function Nav() {
   if (!user) return null
   return (
     <nav className="nav">
-      <div className="nav-left"><Link className="brand" href="/">MediSage 智医言犀</Link></div>
+      <div className="nav-left"><Link className="brand" href="/">AISP 智医言犀</Link></div>
       <div className="nav-right">
         <Link href="/">主页</Link>
         {user ? (

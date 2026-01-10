@@ -5,12 +5,12 @@ import crypto from 'crypto'
 export async function GET(req) {
   if (process.env.DEBUG_LOCAL !== '1') return NextResponse.redirect(new URL('/', req.url))
   const users = getUsers()
-  let user = users.find(u => u.email === 'dev@medisage.local')
+  let user = users.find(u => u.email === 'dev@aisp.local')
   if (!user) {
     const id = 'dev-user-0001'
     const salt = crypto.randomBytes(16).toString('hex')
     const passwordHash = crypto.createHmac('sha256', salt).update('devpass').digest('hex')
-    user = { id, name: '本地调试', email: 'dev@medisage.local', passwordHash, salt, school: '医学院（本地）', year: '2025', createdAt: Date.now() }
+    user = { id, name: '本地调试', email: 'dev@aisp.local', passwordHash, salt, school: '医学院（本地）', year: '2025', createdAt: Date.now() }
     users.push(user)
     saveUsers(users)
   }
