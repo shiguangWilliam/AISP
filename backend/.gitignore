@@ -1,6 +1,7 @@
 target/
-!.mvn/wrapper/maven-wrapper.jar
-.mvn/
+.m2/
+.tmp/
+.mvn/wrapper/dists/
 .idea/
 *.iml
 .DS_Store
