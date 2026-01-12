@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import crypto from 'crypto'
-import { getConversations, saveConversations, getScores, saveScores } from '../../../src/data/store'
+import {
+  getConversations,
+  saveConversations,
+  getScores,
+  saveScores,
+  getAgents,
+  getAgentSessions,
+  saveAgentSessions,
+} from '../../../src/data/store'
 
 export async function GET() {
   const sid = cookies().get('session')?.value
@@ -13,11 +21,66 @@ export async function GET() {
 export async function POST(req) {
   const sid = cookies().get('session')?.value
   if (!sid) return NextResponse.json({ error: '未登录' }, { status: 401 })
-  const { title = '新问诊' } = await req.json()
+  const { title, agentName } = await req.json()
+
+  const agents = getAgents()
+  const selected = agentName ? agents.find(a => a?.name === agentName) : agents[0]
+  if (!selected) return NextResponse.json({ error: '无可用智能体' }, { status: 400 })
+
   const all = getConversations()
-  const conv = { id: crypto.randomUUID(), userId: sid, title, messages: [], createdAt: Date.now() }
+  const existingTitles = all
+    .filter(c => c && typeof c === 'object' && c.userId === sid)
+    .map(c => String(c.title || ''))
+
+  const makeUniqueTitle = (base, titles) => {
+    const trimmed = String(base || '').trim()
+    const root = trimmed || '新问诊'
+
+    let hasRoot = false
+    let maxSuffix = 0
+    const re = new RegExp(`^${root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}（(\\d+)）$`)
+
+    for (const t of titles) {
+      if (t === root) {
+        hasRoot = true
+        continue
+      }
+      const m = String(t).match(re)
+      if (m) maxSuffix = Math.max(maxSuffix, Number(m[1]) || 0)
+    }
+    if (!hasRoot && maxSuffix === 0) return root
+    return `${root}（${Math.max(1, maxSuffix + 1)}）`
+  }
+  const now = Date.now()
+  const baseTitle = (typeof title === 'string' && title.trim())
+    ? title.trim()
+    : (selected?.name || '新问诊')
+  const finalTitle = makeUniqueTitle(baseTitle, existingTitles)
+  const conv = {
+    id: crypto.randomUUID(),
+    userId: sid,
+    title: finalTitle,
+    messages: [],
+    createdAt: now,
+    updatedAt: now,
+    agentName: selected.name,
+    agentId: selected.id,
+    agentConversationId: null,
+  }
   all.push(conv)
   saveConversations(all)
+
+  // Serialize agent session metadata for sidebar history.
+  const sessions = getAgentSessions()
+  sessions.push({
+    conversationId: conv.id,
+    createdAt: now,
+    agentName: selected.name,
+    agentId: selected.id,
+    updatedAt: now,
+  })
+  saveAgentSessions(sessions)
+
   return NextResponse.json(conv)
 }
 
@@ -32,6 +95,10 @@ export async function DELETE(req) {
   if (idx === -1) return NextResponse.json({ error: '会话不存在' }, { status: 404 })
   all.splice(idx, 1)
   saveConversations(all)
+
+  const sessions = getAgentSessions().filter(x => x?.conversationId !== id)
+  saveAgentSessions(sessions)
+
   const scores = getScores().filter(s => !(s.convId === id && s.userId === sid))
   saveScores(scores)
   return NextResponse.json({ ok: true })

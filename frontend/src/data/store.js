@@ -5,6 +5,8 @@ const dataDir = path.join(process.cwd(), 'src', 'data')
 const usersFile = path.join(dataDir, 'users.json')
 const conversationsFile = path.join(dataDir, 'conversations.json')
 const scoresFile = path.join(dataDir, 'scores.json')
+const agentsFile = path.join(dataDir, 'agents.json')
+const agentSessionsFile = path.join(dataDir, 'agentSessions.json')
 
 const ensureFile = (file, initial) => {
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
@@ -14,6 +16,8 @@ const ensureFile = (file, initial) => {
 ensureFile(usersFile, [])
 ensureFile(conversationsFile, [])
 ensureFile(scoresFile, [])
+ensureFile(agentsFile, [])
+ensureFile(agentSessionsFile, [])
 
 const read = (file) => {
   try {
@@ -36,4 +40,10 @@ export const saveConversations = (data) => write(conversationsFile, data)
 
 export const getScores = () => read(scoresFile)
 export const saveScores = (data) => write(scoresFile, data)
+
+export const getAgents = () => read(agentsFile)
+export const saveAgents = (data) => write(agentsFile, data)
+
+export const getAgentSessions = () => read(agentSessionsFile)
+export const saveAgentSessions = (data) => write(agentSessionsFile, data)
 

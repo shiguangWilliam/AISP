@@ -7,20 +7,14 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
-@RestController
-@RequestMapping("/api/db")
+@Service
 @Validated
 public class DbController {
     private final JdbcTemplate jdbcTemplate;
@@ -28,10 +22,9 @@ public class DbController {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    @GetMapping("/ping")
-    public ResponseEntity<String> pingDatabase() {
+    public int pingDatabase() {
         Integer result = jdbcTemplate.queryForObject("SELECT 1", Integer.class);
-        return ResponseEntity.ok("ok:" + result);
+        return result == null ? 0 : result;
     }
 
         private static final RowMapper<UserRow> USER_ROW_MAPPER = (rs, rowNum) -> new UserRow(
@@ -57,10 +50,7 @@ public class DbController {
             rs.getTimestamp("created_at").toInstant()
         );
 
-        @GetMapping("/users")
-        public List<UserRow> listUsers(
-                @RequestParam(name = "limit", defaultValue = "50") @Min(1) @Max(200) int limit
-        ) {
+        public List<UserRow> listUsers(@Min(1) @Max(200) int limit) {
         return jdbcTemplate.query(
             "SELECT id, email, username, created_at FROM users ORDER BY id DESC LIMIT ?",
             USER_ROW_MAPPER,
@@ -68,38 +58,46 @@ public class DbController {
         );
         }
 
-        @GetMapping("/users/{id}")
-        public ResponseEntity<UserRow> getUserById(@PathVariable("id") @Min(1) long id) {
+        public Optional<UserRow> getUserById(@Min(1) long id) {
         try {
             UserRow user = jdbcTemplate.queryForObject(
                 "SELECT id, email, username, created_at FROM users WHERE id = ?",
                 USER_ROW_MAPPER,
                 id
             );
-            return ResponseEntity.ok(user);
+            return Optional.ofNullable(user);
         } catch (EmptyResultDataAccessException ex) {
-            return ResponseEntity.notFound().build();
+            return Optional.empty();
         }
         }
 
-        @GetMapping("/users/by-email")
-        public ResponseEntity<UserRow> getUserByEmail(@RequestParam("email") @Email String email) {
+        public Optional<UserRow> getUserByEmail(@Email String email) {
         try {
             UserRow user = jdbcTemplate.queryForObject(
                 "SELECT id, email, username, created_at FROM users WHERE email = ?",
                 USER_ROW_MAPPER,
                 email
             );
-            return ResponseEntity.ok(user);
+            return Optional.ofNullable(user);
         } catch (EmptyResultDataAccessException ex) {
-            return ResponseEntity.notFound().build();
+            return Optional.empty();
         }
         }
 
-        @GetMapping("/conversations")
-        public List<ConversationRow> listConversations(
-            @RequestParam(name = "limit", defaultValue = "50") @Min(1) @Max(200) int limit
-        ) {
+        public Optional<String> getPasswordHashByEmail(@Email String email) {
+        try {
+            String hash = jdbcTemplate.queryForObject(
+                "SELECT password_hash FROM users WHERE email = ?",
+                String.class,
+                email
+            );
+            return Optional.ofNullable(hash);
+        } catch (EmptyResultDataAccessException ex) {
+            return Optional.empty();
+        }
+        }
+
+        public List<ConversationRow> listConversations(@Min(1) @Max(200) int limit) {
         return jdbcTemplate.query(
                     "SELECT id, agent_type, server_session_id, created_at, last_modified_at FROM conversations ORDER BY id DESC LIMIT ?",
             CONVERSATION_ROW_MAPPER,
@@ -107,10 +105,9 @@ public class DbController {
         );
         }
 
-        @GetMapping("/users/{userId}/conversations")
         public List<ConversationRow> listConversationsForUser(
-            @PathVariable("userId") @Min(1) long userId,
-            @RequestParam(name = "limit", defaultValue = "50") @Min(1) @Max(200) int limit
+            @Min(1) long userId,
+            @Min(1) @Max(200) int limit
         ) {
         return jdbcTemplate.query(
             "SELECT c.id, c.agent_type, c.server_session_id, c.created_at, c.last_modified_at " +
@@ -124,10 +121,9 @@ public class DbController {
         );
         }
 
-        @GetMapping("/conversations/{conversationId}/scores")
         public List<ScoreRow> listScoresForConversation(
-            @PathVariable("conversationId") @Min(1) long conversationId,
-            @RequestParam(name = "limit", defaultValue = "50") @Min(1) @Max(200) int limit
+            @Min(1) long conversationId,
+            @Min(1) @Max(200) int limit
         ) {
         return jdbcTemplate.query(
             "SELECT id, conversation_id, score, dimensions, created_at " +
@@ -139,8 +135,7 @@ public class DbController {
         );
         }
 
-        @GetMapping("/conversations/{conversationId}/scores/latest")
-        public ResponseEntity<ScoreRow> getLatestScoreForConversation(@PathVariable("conversationId") @Min(1) long conversationId) {
+        public Optional<ScoreRow> getLatestScoreForConversation(@Min(1) long conversationId) {
         try {
             ScoreRow score = jdbcTemplate.queryForObject(
                     "SELECT id, conversation_id, score, dimensions, created_at " +
@@ -149,15 +144,10 @@ public class DbController {
                 SCORE_ROW_MAPPER,
                 conversationId
             );
-            return ResponseEntity.ok(score);
+            return Optional.ofNullable(score);
         } catch (EmptyResultDataAccessException ex) {
-            return ResponseEntity.notFound().build();
+            return Optional.empty();
         }
-        }
-
-        @ExceptionHandler(DataAccessException.class)
-        public ResponseEntity<String> handleDatabaseError(DataAccessException ex) {
-            return ResponseEntity.internalServerError().body("database error");
         }
 
         public record UserRow(long id, String email, String username, Instant createdAt) {}

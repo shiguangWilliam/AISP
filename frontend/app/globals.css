@@ -97,11 +97,59 @@ html, body {
 .message.user { justify-content: flex-end; }
 .bubble { max-width: 70%; padding: 14px 16px; border-radius: 16px; background: #eef2ff; box-shadow: 0 6px 16px rgba(37, 99, 235, 0.08); }
 .message.user .bubble { background: #dbeafe; }
-.input-row { display: grid; grid-template-columns: 1fr 120px; gap: 10px; padding: 16px 18px 18px; border-top: 1px solid #e5e7eb; background: #fff; position: sticky; bottom: 0; }
+.input-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 16px 18px 18px; border-top: 1px solid #e5e7eb; background: #fff; position: sticky; bottom: 0; align-items: end; }
 .input-row input { padding: 13px 14px; border: 1px solid var(--border); border-radius: 12px; min-height: 46px; font-size: 16px; background: #f8fafc; }
+.input-row .btn { align-self: end; min-height: 46px; }
 .table { width: 100%; border-collapse: collapse; }
 .table th, .table td { border-bottom: 1px solid var(--border); padding: 10px; text-align: left; }
 .small { padding: 6px 10px; font-size: 14px; }
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  z-index: 50;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.modal {
+  width: min(520px, 92vw);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  padding: 16px;
+}
+
+.modal-form { display: grid; gap: 12px; margin-top: 10px; }
+.modal-label { display: grid; gap: 6px; }
+.modal-label-text { font-weight: 600; color: var(--muted); font-size: 14px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+
+.suggest-box {
+  display: grid;
+  gap: 10px;
+}
+
+.suggest-item {
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #f3f4f6;
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, transform .1s ease;
+}
+
+.suggest-item:hover {
+  background: #e8ecff;
+  transform: translateY(-1px);
+}
+
 @media (max-width: 880px) {
   .chat-layout { grid-template-columns: 1fr; padding: 0 14px; }
   .sidebar { position: static; max-height: none; }

@@ -19,6 +19,7 @@ export async function POST(req) {
   const all = getConversations()
   const conv = all.find(c => c.id === convId && c.userId === sid)
   if (!conv) return NextResponse.json({ error: '会话不存在' }, { status: 404 })
+
   conv.messages.push({ id: crypto.randomUUID(), role: 'user', text: message, ts: Date.now() })
   const reply = aiReply(message)
   conv.messages.push({ id: crypto.randomUUID(), role: 'ai', text: reply, ts: Date.now() })
