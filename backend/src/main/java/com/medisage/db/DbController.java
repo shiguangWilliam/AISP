@@ -11,6 +11,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,6 +32,7 @@ public class DbController {
             rs.getLong("id"),
             rs.getString("email"),
             rs.getString("username"),
+            rs.getString("role"),
             rs.getTimestamp("created_at").toInstant()
         );
 
@@ -52,7 +54,7 @@ public class DbController {
 
         public List<UserRow> listUsers(@Min(1) @Max(200) int limit) {
         return jdbcTemplate.query(
-            "SELECT id, email, username, created_at FROM users ORDER BY id DESC LIMIT ?",
+            "SELECT id, email, username, role, created_at FROM users ORDER BY id DESC LIMIT ?",
             USER_ROW_MAPPER,
             limit
         );
@@ -61,7 +63,7 @@ public class DbController {
         public Optional<UserRow> getUserById(@Min(1) long id) {
         try {
             UserRow user = jdbcTemplate.queryForObject(
-                "SELECT id, email, username, created_at FROM users WHERE id = ?",
+                "SELECT id, email, username, role, created_at FROM users WHERE id = ?",
                 USER_ROW_MAPPER,
                 id
             );
@@ -74,7 +76,7 @@ public class DbController {
         public Optional<UserRow> getUserByEmail(@Email String email) {
         try {
             UserRow user = jdbcTemplate.queryForObject(
-                "SELECT id, email, username, created_at FROM users WHERE email = ?",
+                "SELECT id, email, username, role, created_at FROM users WHERE email = ?",
                 USER_ROW_MAPPER,
                 email
             );
@@ -95,6 +97,56 @@ public class DbController {
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();
         }
+        }
+
+        public int updatePasswordHashByEmail(@Email String email, String passwordHash) throws DataAccessException {
+        return jdbcTemplate.update(
+            "UPDATE users SET password_hash = ? WHERE email = ?",
+            passwordHash,
+            email
+        );
+        }
+
+        public Optional<Instant> getLatestVerificationCreatedAt(@Email String email) {
+        try {
+            Timestamp ts = jdbcTemplate.queryForObject(
+                "SELECT created_at FROM email_verification_codes WHERE email = ? ORDER BY created_at DESC LIMIT 1",
+                Timestamp.class,
+                email
+            );
+            return ts == null ? Optional.empty() : Optional.of(ts.toInstant());
+        } catch (EmptyResultDataAccessException ex) {
+            return Optional.empty();
+        }
+        }
+
+        public void insertVerificationCode(@Email String email, String codeHash, Instant expiresAt, String requestIp) throws DataAccessException {
+        jdbcTemplate.update(
+            "INSERT INTO email_verification_codes (email, code_hash, expires_at, request_ip) VALUES (?, ?, ?, ?)",
+            email,
+            codeHash,
+            Timestamp.from(expiresAt),
+            requestIp
+        );
+        }
+
+        public boolean consumeVerificationCode(@Email String email, String codeHash) throws DataAccessException {
+        // 一次性使用：只消费未过期且未使用的最新记录
+        int updated = jdbcTemplate.update(
+            "UPDATE email_verification_codes " +
+                "SET used_at = NOW() " +
+                "WHERE email = ? AND code_hash = ? AND used_at IS NULL AND expires_at > NOW()",
+            email,
+            codeHash
+        );
+        return updated > 0;
+        }
+
+        public int markEmailVerified(@Email String email) throws DataAccessException {
+        return jdbcTemplate.update(
+            "UPDATE users SET email_verified = 1 WHERE email = ?",
+            email
+        );
         }
 
         public List<ConversationRow> listConversations(@Min(1) @Max(200) int limit) {
@@ -149,8 +201,25 @@ public class DbController {
             return Optional.empty();
         }
         }
+        // 创建新用户，默认参数已处理
+        public void createUser(@Email String email, String username,String passwordHash,String role) throws DataAccessException {
+        jdbcTemplate.update(
+            "INSERT INTO users (email, username, role, password_hash, created_at) VALUES (?, ?, ?, ?, NOW())",
+            email,
+            username,
+            role,
+            passwordHash
+        );
 
-        public record UserRow(long id, String email, String username, Instant createdAt) {}
+        // 目前只支持官方提供Agent,暂时不提供MCP与自定义agnet服务
+        public void getAvailableAgentTypes() throws DataAccessException {
+        jdbcTemplate.query(
+            "SELECT DISTINCT agent_type FROM agents WHERE available = 1",
+            (rs, rowNum) -> rs.getString("agent_type")
+        );
+    }
+
+        public record UserRow(long id, String email, String username, String role, Instant createdAt) {}
 
         public record ConversationRow(long id, String agentType, String serverSessionId, Instant createdAt, Instant lastModifiedAt) {}
 

@@ -40,7 +40,44 @@ docker compose up -d
 You can change the mirror image in `docker-compose.yml` if needed.
 
 - The SQL in `initdb/` runs only on first startup (when the data volume is empty).
-- If you need to re-run init scripts, remove the volume: `docker volume rm medisage-mysql-data`.
+
+## Reset / Rebuild (clear data and re-init)
+
+If you want to clear the current database and re-run `initdb/*.sql`, you must delete the MySQL data volume.
+
+### Using docker compose (recommended)
+
+From this folder:
+
+```powershell
+cd backend\docker\mysql
+
+# Stop and remove container + network + the named volume defined in docker-compose.yml
+docker compose down -v
+
+# Start again (initdb scripts will run again)
+docker compose up -d
+```
+
+### If you previously used `docker run`
+
+If you started MySQL via `docker run -v medisage-mysql-data:/var/lib/mysql`, then the volume name is likely `medisage-mysql-data`.
+
+```powershell
+docker rm -f medisage-mysql
+docker volume rm medisage-mysql-data
+```
+
+### Troubleshooting: find the actual volume name
+
+Compose may prefix volume names (e.g. `mysql_medisage-mysql-data`). If you are not sure:
+
+```powershell
+docker volume ls
+docker volume ls | Select-String medisage
+```
+
+Then remove the matching volume and run `docker compose up -d` again.
 
 ## Connect
 

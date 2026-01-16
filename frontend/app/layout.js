@@ -21,7 +21,7 @@ export default function RootLayout({ children }) {
             {!user ? <a className="btn small ghost" href="/api/dev-login">一键进入本地调试账号</a> : null}
           </div>
         ) : null}
-        {user ? <Nav /> : null}
+        <Nav />
         {children}
       </body>
     </html>

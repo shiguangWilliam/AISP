@@ -6,6 +6,12 @@ import { usePathname } from 'next/navigation'
 export default function Nav() {
   const [user, setUser] = useState(null)
   const pathname = usePathname()
+
+  const linkClass = (href, extra = '') => {
+    const active = pathname === href || (href !== '/' && pathname?.startsWith(href))
+    return `${active ? 'active' : ''} ${extra}`.trim()
+  }
+
   useEffect(() => {
     let mounted = true
     const load = async () => {
@@ -28,12 +34,12 @@ export default function Nav() {
     <nav className="nav">
       <div className="nav-left"><Link className="brand" href="/">AISP 智医言犀</Link></div>
       <div className="nav-right">
-        <Link href="/">主页</Link>
+        <Link className={linkClass('/')} href="/">主页</Link>
         {user ? (
           <>
-            <Link href="/chat">问诊</Link>
-            <Link href="/scores">成绩</Link>
-            <Link href="/profile">个人信息</Link>
+            <Link className={linkClass('/chat')} href="/chat">问诊</Link>
+            <Link className={linkClass('/scores')} href="/scores">成绩</Link>
+            <Link className={linkClass('/profile')} href="/profile">个人信息</Link>
             <form action="/api/logout" method="post" style={{ display: 'inline' }}>
               <button className="link-btn" type="submit">退出</button>
             </form>

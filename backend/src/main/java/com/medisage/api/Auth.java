@@ -3,6 +3,7 @@ package com.medisage.api;
 import com.medisage.db.DbController;
 import com.medisage.utils.ParamCheck;
 import com.medisage.utils.PasswordHash;
+import com.medisage.utils.JwtUtils;
 import java.util.Map;
 
 import org.springframework.http.MediaType;
@@ -18,9 +19,11 @@ import jakarta.servlet.http.HttpServletResponse;
 @RestController
 public class Auth {
     private final DbController dbController;
+    private final JwtUtils jwtUtils;
 
-    public Auth(DbController dbController) {
+    public Auth(DbController dbController, JwtUtils jwtUtils) {
         this.dbController = dbController;
+        this.jwtUtils = jwtUtils;
     }
 
     @PostMapping(value = "/api/login", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -43,19 +46,40 @@ public class Auth {
             return Map.of("error", "Password must be at least 8 characters long.");
         }
 
-        String hash = PasswordHash.hashPassword(password);
-
         String storedHash = dbController.getPasswordHashByEmail(email).orElse(null);
         if (storedHash == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return Map.of("error", "User not found.");
         }
-
-        if (!storedHash.equals(hash)) {
+        
+        if (!PasswordHash.matches(password, storedHash)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return Map.of("error", "Invalid credentials.");
         }
 
-        return Map.of("LoginStatus", "Success");
+        // // 平滑迁移：如果历史存量是 sha256Hex(password)，登录成功后升级为 bcrypt
+        // if (!PasswordHash.isBcryptHash(storedHash) && PasswordHash.isLegacySha256Hex(storedHash)) {
+        //     String upgraded = PasswordHash.hashPassword(password);
+        //     dbController.updatePasswordHashByEmail(email, upgraded);
+        // }
+
+        var user = dbController.getUserByEmail(email).orElse(null);
+        if (user == null) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return Map.of("error", "User not found.");
+        }
+
+        // 登录成功，分发 JWT
+        String token = jwtUtils.generateToken(String.valueOf(user.id()), user.username(), user.role());
+        return Map.of(
+            "loginStatus", "success",
+            "token", token,
+            "user", Map.of(
+                "id", user.id(),
+                "email", user.email(),
+                "username", user.username(),
+                "role", user.role()
+            )
+        );
     }
 }
