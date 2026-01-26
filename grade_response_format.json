@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "score-report-v1",
+  "reportId": "auto",
+  "conversationId": "auto",
+  "agentId": "68a03da7e6bf16a9f207ab64",
+  "agentName": "李伟",
+  "patientCaseSummary": "1-3 句概括本次主诉与关键信息",
+  "totalScore": 82,
+  "scoreScale": "0-100",
+  "dimensions": [
+    { "key": "historyTaking", "name": "病史采集", "score": 18, "max": 25 },
+    { "key": "clinicalReasoning", "name": "临床推理", "score": 16, "max": 25 },
+    { "key": "communication", "name": "沟通共情", "score": 22, "max": 25 },
+    { "key": "safety", "name": "安全与红旗", "score": 26, "max": 25 }
+  ],
+  "highlights": [
+    "做得好的点 1（短句）",
+    "做得好的点 2（短句）"
+  ],
+  "issues": [
+    {
+      "severity": "HIGH",
+      "title": "问题标题（短）",
+      "detail": "问题细节（可稍长）",
+      "evidenceQuotes": ["引用你对话中的原句 1", "原句 2"]
+    }
+  ],
+  "nextSteps": [
+    "下一步改进建议 1（可执行）",
+    "建议 2"
+  ],
+  "redFlags": [
+    "需要立即就医的危险信号 1",
+    "危险信号 2"
+  ],
+  "confidence": 0.74,
+  "disclaimer": "仅用于训练与教学，不构成真实医疗建议"
+}

@@ -1,14 +1,24 @@
 import Link from 'next/link'
+import { cookies } from 'next/headers'
+import { getUsers } from '../src/data/store.js'
 
 export default function HomePage() {
+  const sid = cookies().get('session')?.value
+  const user = sid ? getUsers().find((u) => u.id === sid) : null
+  const displayName = user?.name || user?.username || user?.email
+
   return (
     <main>
       <section className="hero">
         <h1>AI 大模型与医学生问诊训练</h1>
         <p>进行标准化问诊练习，沉淀对话历史，查看成绩与分析。</p>
         <div className="hero-actions">
-          <Link className="btn" href="/register">立即注册</Link>
-          <Link className="btn ghost" href="/login">已有账号登录</Link>
+          {displayName ? null : (
+            <>
+              <Link className="btn" href="/register">立即注册</Link>
+              <Link className="btn ghost" href="/login">已有账号登录</Link>
+            </>
+          )}
         </div>
       </section>
       <section className="features">

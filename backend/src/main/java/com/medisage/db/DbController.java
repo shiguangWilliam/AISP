@@ -203,25 +203,48 @@ public class DbController {
         }
         // 创建新用户，默认参数已处理
         public void createUser(@Email String email, String username,String passwordHash,String role) throws DataAccessException {
-        jdbcTemplate.update(
-            "INSERT INTO users (email, username, role, password_hash, created_at) VALUES (?, ?, ?, ?, NOW())",
-            email,
-            username,
-            role,
-            passwordHash
-        );
+            jdbcTemplate.update(
+                "INSERT INTO users (email, username, role, password_hash, created_at) VALUES (?, ?, ?, ?, NOW())",
+                email,
+                username,
+                role,
+                passwordHash
+            );
+        }
 
         // 目前只支持官方提供Agent,暂时不提供MCP与自定义agnet服务
         public void getAvailableAgentTypes() throws DataAccessException {
-        jdbcTemplate.query(
-            "SELECT DISTINCT agent_type FROM agents WHERE available = 1",
-            (rs, rowNum) -> rs.getString("agent_type")
-        );
-    }
+            jdbcTemplate.query(
+                "SELECT DISTINCT agent_type FROM agents WHERE available = 1",
+                (rs, rowNum) -> rs.getString("agent_type")
+            );
+        }
+
+        public List<ConversationRow> listConversationsByUserId(String userId, int limit){
+            return jdbcTemplate.query(
+                "SELECT c.id, c.agent_type, c.server_session_id, c.created_at, c.last_modified_at " +
+                    "FROM conversations c " +
+                    "JOIN user_conversations uc ON uc.conversation_id = c.id " +
+                    "WHERE uc.user_id = ? " +
+                    "ORDER BY c.last_modified_at DESC LIMIT ?",
+                CONVERSATION_ROW_MAPPER,
+                userId,
+                limit
+            );
+
+
+        }
 
         public record UserRow(long id, String email, String username, String role, Instant createdAt) {}
 
-        public record ConversationRow(long id, String agentType, String serverSessionId, Instant createdAt, Instant lastModifiedAt) {}
+        public record ConversationRow(long id, String agentType, String serverSessionId, Instant createdAt, Instant lastModifiedAt) {
+            public long getId(){return id;}
+            public String getAgentType(){return agentType;}
+            public String getServerSessionId(){return serverSessionId;}
+            public Instant getCreatedAt(){return createdAt;}
+            public Instant getLastModifiedAt(){return lastModifiedAt;}
+
+        }
 
         public record ScoreRow(long id, long conversationId, int score, String dimensions, Instant createdAt) {}
 }

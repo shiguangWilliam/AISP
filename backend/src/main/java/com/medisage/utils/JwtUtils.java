@@ -64,7 +64,27 @@ public class JwtUtils {
         return expiration.before(new Date());
     }
 
-    public String getUserIdFromToken(String token) {
-        return parseClaims(token).get("userId", String.class);
+    // public String getUserIdFromToken(String token) {
+    //     return parseClaims(token).get("userId", String.class);
+    // }
+
+    public UserInfo getuserInfo(String token){
+        var claims = parseClaims(token);
+        String userId = claims.get("userId",String.class);
+        String username = claims.getSubject();
+        String role = claims.get("role",String.class);
+        return new UserInfo(userId,username,role);
+    }
+
+    public record UserInfo(String userId, String Username, String role){
+        public String getUserId(){
+            return userId;
+        }
+        public String getUsername(){
+            return Username;
+        }
+        public String getRole(){
+            return role;
+        }
     }
 }
