@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS conversations (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   last_modified_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   agent_type VARCHAR(64) NOT NULL,
-  server_session_id VARCHAR(128) NULL,
+  server_session_id VARCHAR(128) NULL UNIQUE, 
+  /* server_session_id: ID used by backend agent server to identify session */
   PRIMARY KEY (id),
   KEY idx_conversations_created_at (created_at),
   KEY idx_conversations_last_modified_at (last_modified_at),

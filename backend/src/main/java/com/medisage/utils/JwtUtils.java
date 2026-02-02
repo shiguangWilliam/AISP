@@ -24,7 +24,7 @@ public class JwtUtils {
         if (jwtSecret == null || jwtSecret.isBlank()) {
             throw new IllegalStateException("Missing jwt.secret (set env JWT_SECRET or application.properties jwt.secret)");
         }
-        System.out.println("JWT Secret: " + jwtSecret);// Debug log
+        // System.out.println("JWT Secret: " + jwtSecret);// Debug log
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -64,11 +64,9 @@ public class JwtUtils {
         return expiration.before(new Date());
     }
 
-    // public String getUserIdFromToken(String token) {
-    //     return parseClaims(token).get("userId", String.class);
-    // }
+    
 
-    public UserInfo getuserInfo(String token){
+    public UserInfo getUserInfo(String token){
         var claims = parseClaims(token);
         String userId = claims.get("userId",String.class);
         String username = claims.getSubject();

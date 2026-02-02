@@ -3,7 +3,10 @@ package com.medisage.db;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -14,10 +17,13 @@ import java.time.Instant;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Validated
 public class DbController {
+    @Value("${db.maxRetries:3}") private static int MAX_RETRIES;
+
     private final JdbcTemplate jdbcTemplate;
     public DbController(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
@@ -233,6 +239,40 @@ public class DbController {
             );
 
 
+        }
+
+        public String createConversation(long userId, String agentType, String agentId, Instant now){
+            String conversationId = null;
+            for(int attempt =0; attempt <MAX_RETRIES; attempt++){
+                conversationId = UUID.randomUUID().toString();
+                // 创建会话记录
+                try{
+                    jdbcTemplate.update(
+                        "INSERT INTO conversations (id, agent_type, agent_id, server_session_id, created_at, last_modified_at) VALUES (?, ?, ?, ?, ?, ?)",
+                        conversationId,
+                        agentType,
+                        agentId,
+                        conversationId,
+                        Timestamp.from(now),
+                        Timestamp.from(now)
+                    );
+                }catch(DuplicateKeyException e){
+                    // 理论上不会发生,但如果发生则重试
+                    if(attempt == MAX_RETRIES -1) {
+                        throw e;
+                    }
+                    continue;
+                }
+                break;
+            }
+            // 关联用户与会话
+            jdbcTemplate.update(
+                "INSERT INTO user_conversations (user_id, conversation_id, created_at) VALUES (?, ?, ?)",
+                userId,
+                conversationId,
+                Timestamp.from(now)
+            );
+            return conversationId;
         }
 
         public record UserRow(long id, String email, String username, String role, Instant createdAt) {}
