@@ -20,7 +20,7 @@
 1. 在 Windows 搜索栏输入 `cmd` 或 `PowerShell` 并打开。
 2. 输入以下命令进入项目文件夹（请将路径替换为您实际的文件夹路径）：
    ```bash
-  cd C:\Users\您的名字\Desktop\AISP\forntend
+    cd C:\Users\您的名字\Desktop\AISP\forntend
    ```
    *注意：如果您的文件夹在 D 盘，请先输入 `D:` 然后回车，再输入 `cd ...`*
 
