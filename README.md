@@ -19,9 +19,9 @@
 ### 第三步：打开控制台（黑窗口）
 1. 在 Windows 搜索栏输入 `cmd` 或 `PowerShell` 并打开。
 2. 输入以下命令进入项目文件夹（请将路径替换为您实际的文件夹路径）：
-   ```bash
-    cd C:\Users\您的名字\Desktop\AISP\forntend
-   ```
+  ```bash
+  cd C:\Users\您的名字\Desktop\AISP\forntend
+  ```
    *注意：如果您的文件夹在 D 盘，请先输入 `D:` 然后回车，再输入 `cd ...`*
 
 ### 第四步：安装必要的组件
@@ -35,11 +35,11 @@ npm install
 如果您需要以特定身份进行调试，可以按照以下步骤操作：
 1. 在 `forntend` 文件夹下新建一个文件，命名为 `.env.local`。
 2. 用记事本打开该文件，添加以下内容（请根据实际需求修改）：
-   ```env
+  ```env
    DEBUG_LOCAL=1
-  DEV_USER_EMAIL=dev@aisp.local
+   DEV_USER_EMAIL=dev@aisp.local
    DEV_USER_PASSWORD=devpass
-   ```
+  ```
 3. 保存并关闭文件。
 
 ### 第六步：启动网页
