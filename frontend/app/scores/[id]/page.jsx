@@ -22,7 +22,6 @@ const ScoreBar = ({ value, max }) => {
   )
 }
 
-export default function ScoreDetailPage({ params }) {
 export default async function ScoreDetailPage({ params }) {
   const cookieStore = await cookies()
   const sid = cookieStore.get('session')?.value
