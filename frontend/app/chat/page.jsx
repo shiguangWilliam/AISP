@@ -17,10 +17,16 @@ export default function ChatPage() {
   const [query, setQuery] = useState('')
   const [history, setHistory] = useState([])
   const [sending, setSending] = useState(false)
+  const [scoreModalOpen, setScoreModalOpen] = useState(false)
+  const [scoreGenerating, setScoreGenerating] = useState(false)
+  const [scoreProgress, setScoreProgress] = useState(0)
+  const [scorePreview, setScorePreview] = useState('')
+  const [scoreGenError, setScoreGenError] = useState('')
   const [didInitConvId, setDidInitConvId] = useState(null)
   const [suggestions, setSuggestions] = useState([])
   const [suggestForConvId, setSuggestForConvId] = useState(null)
   const inputRef = useRef(null)
+  const scoreEsRef = useRef(null)
   const router = useRouter()
   const params = useSearchParams()
   const id = params.get('id')
@@ -76,6 +82,84 @@ export default function ChatPage() {
       if (!id && firstId) router.replace(`/chat?id=${firstId}`)
     })()
   }, [])
+
+  useEffect(() => {
+    return () => {
+      try {
+        scoreEsRef.current?.close?.()
+      } catch {}
+      scoreEsRef.current = null
+    }
+  }, [])
+
+  const startGenerateScore = () => {
+    if (!activeConv?.id) return
+    if (scoreGenerating) return
+
+    setScoreGenError('')
+    setScorePreview('')
+    setScoreProgress(8)
+    setScoreModalOpen(true)
+    setScoreGenerating(true)
+
+    const url = `/api/scores/generate-stream?convId=${encodeURIComponent(activeConv.id)}`
+
+    try {
+      scoreEsRef.current?.close?.()
+    } catch {}
+
+    const es = new EventSource(url)
+    scoreEsRef.current = es
+    let closed = false
+
+    const close = () => {
+      if (closed) return
+      closed = true
+      try {
+        es.close()
+      } catch {}
+    }
+
+    es.onmessage = (evt) => {
+      if (!evt?.data) return
+      if (evt.data === '[DONE]') {
+        close()
+        return
+      }
+
+      let json
+      try {
+        json = JSON.parse(evt.data)
+      } catch {
+        return
+      }
+
+      if (json?.type === 'delta' && typeof json.delta === 'string') {
+        setScorePreview(prev => {
+          const next = prev + json.delta
+          const pct = Math.min(95, 8 + Math.min(87, Math.floor((next.length / 900) * 87)))
+          setScoreProgress(pct)
+          return next
+        })
+      } else if (json?.type === 'error') {
+        setScoreGenError(String(json?.error || '生成失败'))
+        setScoreProgress(100)
+        close()
+        setScoreGenerating(false)
+      } else if (json?.type === 'done' && typeof json.scoreId === 'string') {
+        setScoreProgress(100)
+        close()
+        setScoreGenerating(false)
+        router.push(`/scores/${json.scoreId}`)
+      }
+    }
+
+    es.onerror = () => {
+      close()
+      setScoreGenError('连接中断，请重试')
+      setScoreGenerating(false)
+    }
+  }
 
   const loadSuggestions = async (convId) => {
     if (!convId) return
@@ -351,7 +435,16 @@ export default function ChatPage() {
       <section className="chat">
         <header className="chat-header">
           <h3>{activeConv?.title || '问诊'}</h3>
-          {activeConv ? <a className="btn small ghost" href={`/api/scores/generate?convId=${activeConv.id}`}>生成成绩</a> : null}
+          {activeConv ? (
+            <button
+              className="btn small ghost"
+              type="button"
+              disabled={scoreGenerating}
+              onClick={startGenerateScore}
+            >
+              {scoreGenerating ? '生成中…' : '生成成绩'}
+            </button>
+          ) : null}
         </header>
         {error ? (
           <div className="error" role="alert" aria-live="assertive" style={{ margin: '12px 20px 0' }}>
@@ -449,6 +542,51 @@ export default function ChatPage() {
                 <button className="btn" type="submit">创建</button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {scoreModalOpen ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="正在生成成绩">
+          <div className="modal">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ fontWeight: 800 }}>正在生成成绩报告</div>
+              <button className="link-btn" type="button" onClick={() => {
+                setScoreModalOpen(false)
+                setScoreGenError('')
+              }}>隐藏</button>
+            </div>
+
+            <div className="progress" aria-label="生成进度" style={{ marginTop: 12 }}>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${Math.max(0, Math.min(100, scoreProgress))}%` }} />
+              </div>
+              <div className="progress-meta">
+                <span className="muted">{scoreGenError ? '出错' : '智能体正在打分…'}</span>
+                <span className="muted">{Math.max(0, Math.min(100, scoreProgress))}%</span>
+              </div>
+            </div>
+
+            {scoreGenError ? (
+              <div className="error" style={{ marginTop: 12 }}>{scoreGenError}</div>
+            ) : null}
+
+            {scorePreview ? (
+              <pre className="md-raw" style={{ marginTop: 12, maxHeight: 220 }}>{scorePreview}</pre>
+            ) : (
+              <div className="loading-row" style={{ marginTop: 12 }}>
+                <div className="spinner" aria-hidden="true" />
+                <div className="muted">正在等待智能体返回评分表格…</div>
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button className="btn ghost" type="button" onClick={() => startGenerateScore()} disabled={scoreGenerating}>重新生成</button>
+              <button className="btn" type="button" onClick={() => {
+                setScoreModalOpen(false)
+                setScoreGenError('')
+              }}>后台继续</button>
+            </div>
           </div>
         </div>
       ) : null}
