@@ -12,14 +12,16 @@ import {
 } from '../../../src/data/store'
 
 export async function GET() {
-  const sid = cookies().get('session')?.value
+  const cookieStore = await cookies()
+  const sid = cookieStore.get('session')?.value
   if (!sid) return NextResponse.json({ error: '未登录' }, { status: 401 })
   const list = getConversations().filter(c => c.userId === sid).sort((a, b) => b.createdAt - a.createdAt)
   return NextResponse.json(list)
 }
 
 export async function POST(req) {
-  const sid = cookies().get('session')?.value
+  const cookieStore = await cookies()
+  const sid = cookieStore.get('session')?.value
   if (!sid) return NextResponse.json({ error: '未登录' }, { status: 401 })
   const { title, agentName } = await req.json()
 
@@ -85,7 +87,8 @@ export async function POST(req) {
 }
 
 export async function DELETE(req) {
-  const sid = cookies().get('session')?.value
+  const cookieStore = await cookies()
+  const sid = cookieStore.get('session')?.value
   if (!sid) return NextResponse.json({ error: '未登录' }, { status: 401 })
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')

@@ -12,7 +12,8 @@ const aiReply = (text) => {
 }
 
 export async function POST(req) {
-  const sid = cookies().get('session')?.value
+  const cookieStore = await cookies()
+  const sid = cookieStore.get('session')?.value
   if (!sid) return NextResponse.json({ error: '未登录' }, { status: 401 })
   const { convId, message } = await req.json()
   if (!message) return NextResponse.json({ error: '消息为空' }, { status: 400 })

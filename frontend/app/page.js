@@ -2,8 +2,9 @@ import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { getUsers } from '../src/data/store.js'
 
-export default function HomePage() {
-  const sid = cookies().get('session')?.value
+export default async function HomePage() {
+  const cookieStore = await cookies()
+  const sid = cookieStore.get('session')?.value
   const user = sid ? getUsers().find((u) => u.id === sid) : null
   const displayName = user?.name || user?.username || user?.email
 

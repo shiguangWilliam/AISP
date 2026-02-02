@@ -10,14 +10,19 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+// import java.beans.Statement;
+import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.sql.Statement;
 
 @Service
 @Validated
@@ -241,38 +246,41 @@ public class DbController {
 
         }
 
-        public String createConversation(long userId, String agentType, String agentId, Instant now){
-            String conversationId = null;
-            for(int attempt =0; attempt <MAX_RETRIES; attempt++){
-                conversationId = UUID.randomUUID().toString();
+        public long createConversation(long userId, String agentType, String agentId, Instant now, String conversationId){
+            // id递增，不需要我生成
                 // 创建会话记录
-                try{
-                    jdbcTemplate.update(
-                        "INSERT INTO conversations (id, agent_type, agent_id, server_session_id, created_at, last_modified_at) VALUES (?, ?, ?, ?, ?, ?)",
-                        conversationId,
-                        agentType,
-                        agentId,
-                        conversationId,
-                        Timestamp.from(now),
-                        Timestamp.from(now)
-                    );
-                }catch(DuplicateKeyException e){
-                    // 理论上不会发生,但如果发生则重试
-                    if(attempt == MAX_RETRIES -1) {
-                        throw e;
-                    }
-                    continue;
-                }
-                break;
-            }
-            // 关联用户与会话
-            jdbcTemplate.update(
+            KeyHolder kh = new GeneratedKeyHolder();
+                
+            jdbcTemplate.update(conn ->{
+                PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO conversations (agent_type, agent_id, server_session_id, created_at, last_modified_at) VALUES (?, ?, ?, ?, ?)",
+                    Statement.RETURN_GENERATED_KEYS
+                );
+                ps.setString(1, agentType);
+                ps.setString(2, agentId);
+                ps.setString(3, conversationId);
+                ps.setTimestamp(4, Timestamp.from(now));
+                ps.setTimestamp(5, Timestamp.from(now));
+                return ps;
+            } , kh
+            );
+            try{
+                long serverConversationId = kh.getKey().longValue();
+                jdbcTemplate.update(
                 "INSERT INTO user_conversations (user_id, conversation_id, created_at) VALUES (?, ?, ?)",
                 userId,
-                conversationId,
+                serverConversationId,
                 Timestamp.from(now)
-            );
-            return conversationId;
+                );
+                return serverConversationId;
+            } catch(Exception e){
+                throw new IllegalStateException("Failed to create conversation record: " + e.getMessage());
+            }
+                
+            
+            // 关联用户与会话
+            
+            
         }
 
         public record UserRow(long id, String email, String username, String role, Instant createdAt) {}

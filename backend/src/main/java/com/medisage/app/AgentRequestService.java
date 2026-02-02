@@ -123,7 +123,9 @@ public class AgentRequestService {
             }
         }
     }
-
+    public DialogResult getDialogMessage(String assistantId, String message){
+        return getDialogMessage(assistantId, "", message);
+    }
     public DialogResult getDialogMessage(String assistantId, String conversationId,String message){
 
         String authToken = getAssistantAuthToken();
@@ -204,6 +206,10 @@ public class AgentRequestService {
 
         public boolean isSuccess() {
             return status == 200 && error == null && response != null;
+        }
+
+        public String toString(){
+            return response;
         }
     }
 }

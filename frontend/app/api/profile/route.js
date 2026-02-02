@@ -3,7 +3,8 @@ import { cookies } from 'next/headers'
 import { getUsers, saveUsers } from '../../../src/data/store'
 
 export async function PUT(req) {
-  const sid = cookies().get('session')?.value
+  const cookieStore = await cookies()
+  const sid = cookieStore.get('session')?.value
   if (!sid) return NextResponse.json({ error: '未登录' }, { status: 401 })
   const { name = '', school = '', year = '' } = await req.json()
   const users = getUsers()
