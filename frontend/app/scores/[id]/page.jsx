@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import Link from 'next/link'
 
 import { getScores, getConversations } from '../../../src/data/store'
+import { resolveSid } from '../../../src/lib/devAuth'
 
 const ScoreBar = ({ value, max }) => {
   const v = typeof value === 'number' ? value : null
@@ -24,7 +25,7 @@ const ScoreBar = ({ value, max }) => {
 
 export default async function ScoreDetailPage({ params }) {
   const cookieStore = await cookies()
-  const sid = cookieStore.get('session')?.value
+  const { sid, bypass } = resolveSid(cookieStore.get('session')?.value)
   if (!sid) {
     return (
       <main className="container">
@@ -34,8 +35,11 @@ export default async function ScoreDetailPage({ params }) {
     )
   }
 
-  const id = params?.id
-  const score = getScores().find(s => s.id === id && s.userId === sid)
+  const resolvedParams = await params
+  const id = resolvedParams?.id
+  const score = bypass
+    ? getScores().find(s => s.id === id)
+    : getScores().find(s => s.id === id && s.userId === sid)
 
   if (!score) {
     return (

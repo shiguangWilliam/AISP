@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getConversations, saveConversations } from '../../../../src/data/store'
 import { loadAgentRegistry } from '../../_lib/agentRegistry'
+import { resolveSid } from '../../../../src/lib/devAuth'
 
 const API_ROOT = 'https://chatglm.cn/chatglm/assistant-api/v1'
 
@@ -71,7 +72,7 @@ const getAccessToken = async (registry) => {
 
 export async function POST(req) {
   const cookieStore = await cookies()
-  const sid = cookieStore.get('session')?.value
+  const { sid, bypass } = resolveSid(cookieStore.get('session')?.value)
   if (!sid) return NextResponse.json({ error: '未登录' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
@@ -79,7 +80,9 @@ export async function POST(req) {
   if (!convId) return NextResponse.json({ error: '缺少 convId' }, { status: 400 })
 
   const all = getConversations()
-  const conv = all.find(c => c?.id === convId && c?.userId === sid)
+  const conv = bypass
+    ? all.find(c => c?.id === convId)
+    : all.find(c => c?.id === convId && c?.userId === sid)
   if (!conv) return NextResponse.json({ error: '会话不存在' }, { status: 404 })
 
   if (!conv.agentConversationId) {

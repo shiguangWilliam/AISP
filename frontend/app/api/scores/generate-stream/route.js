@@ -5,6 +5,7 @@ import crypto from 'crypto'
 import { getConversations, saveConversations, getScores, saveScores } from '../../../../src/data/store'
 import { loadAgentRegistry } from '../../_lib/agentRegistry'
 import { parseMarkdownPipeTable, summarizeScoreTable } from '../../../../src/lib/markdownTable'
+import { resolveSid } from '../../../../src/lib/devAuth'
 
 const API_ROOT = 'https://chatglm.cn/chatglm/assistant-api/v1'
 
@@ -104,7 +105,7 @@ const fallbackKeywordScore = ({ conv, sid, convId, scoreId, now }) => {
 
 export async function GET(req) {
   const cookieStore = await cookies()
-  const sid = cookieStore.get('session')?.value
+  const { sid, bypass } = resolveSid(cookieStore.get('session')?.value)
   if (!sid) return NextResponse.json({ error: '未登录' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
@@ -112,7 +113,9 @@ export async function GET(req) {
   if (!convId) return NextResponse.json({ error: '缺少 convId' }, { status: 400 })
 
   const all = getConversations()
-  const conv = all.find(c => c.id === convId && c.userId === sid)
+  const conv = bypass
+    ? all.find(c => c.id === convId)
+    : all.find(c => c.id === convId && c.userId === sid)
   if (!conv) return NextResponse.json({ error: '会话不存在' }, { status: 404 })
 
   const encoder = new TextEncoder()

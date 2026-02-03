@@ -10,18 +10,21 @@ import {
   getAgentSessions,
   saveAgentSessions,
 } from '../../../src/data/store'
+import { resolveSid } from '../../../src/lib/devAuth'
 
 export async function GET() {
   const cookieStore = await cookies()
-  const sid = cookieStore.get('session')?.value
+  const { sid, bypass } = resolveSid(cookieStore.get('session')?.value)
   if (!sid) return NextResponse.json({ error: '未登录' }, { status: 401 })
-  const list = getConversations().filter(c => c.userId === sid).sort((a, b) => b.createdAt - a.createdAt)
+  const list = bypass
+    ? getConversations().filter(c => c && typeof c === 'object')
+    : getConversations().filter(c => c && typeof c === 'object' && c.userId === sid)
   return NextResponse.json(list)
 }
 
 export async function POST(req) {
   const cookieStore = await cookies()
-  const sid = cookieStore.get('session')?.value
+  const { sid } = resolveSid(cookieStore.get('session')?.value)
   if (!sid) return NextResponse.json({ error: '未登录' }, { status: 401 })
   const { title, agentName } = await req.json()
 
@@ -88,7 +91,7 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   const cookieStore = await cookies()
-  const sid = cookieStore.get('session')?.value
+  const { sid } = resolveSid(cookieStore.get('session')?.value)
   if (!sid) return NextResponse.json({ error: '未登录' }, { status: 401 })
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')

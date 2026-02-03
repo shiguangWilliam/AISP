@@ -2,13 +2,16 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
 import { getAgentSessions, saveAgentSessions, getConversations } from '../../../src/data/store'
+import { resolveSid } from '../../../src/lib/devAuth'
 
 export async function GET() {
   const cookieStore = await cookies()
-  const sid = cookieStore.get('session')?.value
+  const { sid, bypass } = resolveSid(cookieStore.get('session')?.value)
   if (!sid) return NextResponse.json({ error: '未登录' }, { status: 401 })
 
-  const convs = getConversations().filter(c => c && typeof c === 'object' && c.userId === sid)
+  const convs = bypass
+    ? getConversations().filter(c => c && typeof c === 'object')
+    : getConversations().filter(c => c && typeof c === 'object' && c.userId === sid)
   const sessions = getAgentSessions().filter(x => x && typeof x === 'object')
   const byId = new Map(sessions.map(s => [String(s.conversationId), s]))
 
@@ -40,7 +43,7 @@ export async function GET() {
 // Optional: allow manual patching (not used by UI right now)
 export async function POST(req) {
   const cookieStore = await cookies()
-  const sid = cookieStore.get('session')?.value
+  const { sid } = resolveSid(cookieStore.get('session')?.value)
   if (!sid) return NextResponse.json({ error: '未登录' }, { status: 401 })
 
   const item = await req.json()

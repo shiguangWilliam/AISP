@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import { getConversations, getScores, saveScores } from '../../../../src/data/store'
 import { loadAgentRegistry } from '../../_lib/agentRegistry'
 import { parseMarkdownPipeTable, summarizeScoreTable } from '../../../../src/lib/markdownTable'
+import { resolveSid } from '../../../../src/lib/devAuth'
 
 const API_ROOT = 'https://chatglm.cn/chatglm/assistant-api/v1'
 
@@ -151,11 +152,13 @@ const scoringKeywords = ['持续时间', '严重程度', '伴随症状', '既往
 
 export async function GET(req) {
   const cookieStore = await cookies()
-  const sid = cookieStore.get('session')?.value
+  const { sid, bypass } = resolveSid(cookieStore.get('session')?.value)
   if (!sid) return NextResponse.redirect(new URL('/login', req.url))
   const { searchParams } = new URL(req.url)
   const convId = searchParams.get('convId')
-  const conv = getConversations().find(c => c.id === convId && c.userId === sid)
+  const conv = bypass
+    ? getConversations().find(c => c.id === convId)
+    : getConversations().find(c => c.id === convId && c.userId === sid)
   if (!conv) return NextResponse.redirect(new URL('/chat', req.url))
 
   const now = Date.now()
