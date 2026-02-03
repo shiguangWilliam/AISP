@@ -91,11 +91,33 @@ CREATE TABLE IF NOT EXISTS user_conversations (
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- Conversation messages (only keep 15 days hot data in MySQL; older data should be exported to cold archive by app/ops job)
+-- Columns must be limited to: conversation_id, user_id, conversationmessage, create_at
+CREATE TABLE IF NOT EXISTS conversation_messages (
+  conversation_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  conversationmessage MEDIUMTEXT NOT NULL,
+  create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_cm_conversation_create_at (conversation_id, create_at),
+  KEY idx_cm_user_create_at (user_id, create_at),
+  CONSTRAINT fk_cm_conversation
+    FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_cm_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Helper view: rows older than 15 days (for export/serialization to local cold archive)
+CREATE OR REPLACE VIEW v_conversation_messages_to_archive AS
+SELECT conversation_id, user_id, conversationmessage, create_at
+FROM conversation_messages
+WHERE create_at < (UTC_TIMESTAMP() - INTERVAL 15 DAY);
+
 -- Scores: feedback/score belongs to a conversation
 CREATE TABLE IF NOT EXISTS scores (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   conversation_id BIGINT UNSIGNED NOT NULL,
-  score INT NOT NULL,
   dimensions JSON NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -134,5 +156,5 @@ SET @demo_conversation_id := LAST_INSERT_ID();
 INSERT INTO user_conversations (user_id, conversation_id)
 VALUES (@demo_user_id, @demo_conversation_id);
 
-INSERT INTO scores (conversation_id, score)
-VALUES (@demo_conversation_id, 80);
+INSERT INTO scores (conversation_id, dimensions)
+VALUES (@demo_conversation_id, JSON_OBJECT('total', 80));

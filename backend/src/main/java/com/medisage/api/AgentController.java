@@ -1,8 +1,6 @@
 package com.medisage.api;
 import com.medisage.app.AgentRequestService;
-import com.medisage.app.AgentRequestService.DialogResult;
 
-import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties.Jwt;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -10,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.medisage.utils.JwtUtils;
 import com.medisage.utils.JwtUtils.UserInfo;
 
@@ -19,8 +18,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import com.medisage.db.DbController;
-
-import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 
 
@@ -52,10 +49,8 @@ public class AgentController {
         Map<String, Object> sessionInfo = null;
         String serverConversationId;
         try{
-            String message = "";// initial message
-            
-            JSONObject serverResponse = JSON.parseObject(agentRequestService.getDialogMessage(agentId, message).toString());
-            serverConversationId = serverResponse.getString("conversation_id");
+            // /stream 要求 prompt 非空；这里用最小 prompt 触发问候并拿到 conversation_id
+            serverConversationId = agentRequestService.createConversationId(agentId);
 
         }catch(Exception e){
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -79,6 +74,76 @@ public class AgentController {
             return sessionInfo;
         }
         
+    }
+
+    /**
+     * 真正的流式对话接口：SSE 逐块向前端转发清言 /stream 的 data。
+     * 请求体: { assistant_id, conversation_id, prompt }
+     */
+    @PostMapping(value = "/stream", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamDialog(
+        @CookieValue(name = "token", required = false) String token,
+        @RequestBody Map<String, Object> payload,
+        HttpServletResponse response
+    ) {
+        SseEmitter emitter = new SseEmitter(0L);
+
+        // Optional auth check: if token invalid, emit an error event then complete.
+        try {
+            jwtUtils.getUserInfo(token);
+        } catch (Exception e) {
+            try {
+                JSONObject err = new JSONObject();
+                err.put("type", "error");
+                err.put("error", "未登录");
+                emitter.send(SseEmitter.event().data(err.toJSONString()));
+            } catch (Exception ignored) {
+                // ignore send error
+            } finally {
+                emitter.complete();
+            }
+            return emitter;
+        }
+
+        String assistantId = payload.getOrDefault("assistant_id", payload.getOrDefault("assistantId", "")).toString();
+        String conversationId = payload.getOrDefault("conversation_id", payload.getOrDefault("conversationId", "")).toString();
+        String prompt = payload.getOrDefault("prompt", payload.getOrDefault("message", "")).toString();
+
+        agentRequestService.streamDialogMessage(
+            assistantId,
+            conversationId,
+            prompt,
+            (data) -> {
+                try {
+                    emitter.send(SseEmitter.event().data(data));
+                    if ("[DONE]".equals(data)) emitter.complete();
+                } catch (Exception sendErr) {
+                    emitter.completeWithError(sendErr);
+                }
+            },
+            (t) -> {
+                try {
+                    JSONObject err = new JSONObject();
+                    err.put("type", "error");
+                    err.put("error", t.getMessage());
+                    emitter.send(SseEmitter.event().data(err.toJSONString()));
+                } catch (Exception ignored) {
+                    // ignore send error
+                } finally {
+                    emitter.completeWithError(t);
+                }
+            },
+            () -> {
+                try {
+                    emitter.send(SseEmitter.event().data("[DONE]"));
+                } catch (Exception ignored) {
+                    // ignore send error
+                }
+                emitter.complete();
+            }
+        );
+
+        return emitter;
     }
     
 
